@@ -1,38 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <stdbool.h>
+#include "kalc.h"
 
-#define BSIZE 128 // buffer size.
-#define NONE  -1
-#define EOS   '\0'
-
-#define NUM   256
-#define ID    257
-#define DONE  248
-
-typedef struct {
-    int tok;    // currrent token.
-    int type;   // currrent token type.
-} Scanner;
-
-int tok; // will be more than single chars in future.
 int result = 0;
-int tokenval;
-bool numbertok;
-
-int scanner_next();
-
-int calculate(), expr(), term(), exponent(), factor();
-
-void match(int t), error();
-
 int history[2] = {NONE};
 
 // Run basic REPL.
 int main() {
     while (true) {
-        printf("(kalc)> ");
+        printf("klc> ");
         result = calculate();
         printf("%d\n", result);
     }
@@ -148,35 +122,4 @@ void match(int t) {
 void error(char *msg) {
     fprintf(stderr, "Error: %s\n", msg);
     exit(EXIT_FAILURE);
-}
-
-// scannernext : Lexical analyzer, return the next token found.
-int scanner_next() {
-    int t = getchar();
-    // Each expression can be just one line.
-    while (t != '\n' && t != '\r') {
-        if (t == ' ' || t == '\t') {
-            /* skip whitespace; */
-            t = getchar();
-            continue; 
-        } else if (isdigit(t)) {
-            /* Read number. */
-            tokenval = t - '0';
-            t = getchar();
-            while (isdigit(t)) {
-                tokenval = tokenval*10 + (t - '0');
-                t = getchar();
-            }
-            ungetc(t, stdin);
-            numbertok = true;
-            return tokenval;
-         } else {
-            /* operator or could be error handled later in parser. */
-            numbertok = false;
-            tokenval = NONE;
-            return t;
-        }
-        t = getchar(); /* Always advance the scanner. */
-    }
-    return DONE;
 }

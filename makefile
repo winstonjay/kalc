@@ -7,12 +7,13 @@ CC = gcc
 CFLAGS  = -g -Wall -Werror -Wextra
 
 # the build target executable:
-TARGET = kal
+TARGETS = scanner.c kal.c
+OUTFILE = kalc
 
-all: $(TARGET)
+all: $(OUTFILE)
 
-$(TARGET): $(TARGET).c
-	$(CC) $(CFLAGS) -o build/$(TARGET)c $(TARGET).c
+$(OUTFILE): $(TARGETS)
+	$(CC) $(CFLAGS) $(TARGETS) -o build/$(OUTFILE)
 
 clean:
-	$(RM) build/$(TARGET)
+	$(RM) build/$(OUTFILE)
