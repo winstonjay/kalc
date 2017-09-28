@@ -7,37 +7,46 @@
 #define NONE  -1
 #define EOS   '\0'
 
-#define NUM   256 
-#define DIV   257
-#define MOD   258
-#define ID    259
-#define DONE  260
+#define NUM   256
+#define ID    257
+#define DONE  248
+
+typedef struct {
+    int tok;
+    int toktype;
+} Scanner;
 
 int tok; // will be more than single chars in future.
 int result = 0;
-int tokenval = NONE;
+int tokenval;
+bool numbertok;
 
-int lexan();
+int scanner_next();
+
 int parse();
 int expr();
 int term();
+int exponent();
 int factor();
 void match(int t);
+
 void error();
+
+int history[2] = {-1, -1};
 
 // Run basic REPL.
 int main() {
     while (true) {
         printf(">>> ");
         result = parse();
+        history[1] = history[0];
+        history[0] = result;
         printf("%d\n", result);
     }
 }
 
-
-
 int parse() {
-    tok = lexan();
+    tok = scanner_next();
     result = expr();
     return result;
 }
@@ -48,11 +57,11 @@ int expr() {
         switch (tok) {
         case '+':
             match('+');
-            result = result + term();
+            result += term();
             break;
         case '-':
             match('-'); 
-            result = result - term();
+            result -= term();
             break;
         default:
             return result;
@@ -61,16 +70,20 @@ int expr() {
 }
 
 int term() {
-    int result = factor();
+    int result = exponent();
     while (true) {
         switch (tok) {
         case '*':
             match('*'); 
-            result = result * factor();
+            result *= exponent();
             break;
         case '/':
             match('/'); 
-            result = result / factor();
+            result /= exponent();
+            break;
+        case '%':
+            match('%'); 
+            result %= exponent();
             break;
         default:
             return result;
@@ -78,35 +91,53 @@ int term() {
     }
 }
 
+int exponent() {
+    int result = factor();
+    while (true) {
+        switch (tok) {
+        case '^':
+            match('^');
+            int n = factor();
+            for (int i = 1; i < n; i++) {
+                result *= result;
+            }
+            break;
+        default:
+            return result;
+        }
+    }
+}
 
 int factor() {
-    int result = NONE;
+    int result;
     switch (tok) {
-    case NUM:
-        match(NUM);
-        return tokenval;
+    case '?':
+        match('?');
+        result = history[0];
+        return result;
     case '(':
         match('(');      
         result = expr();
         match(')');
         return result;
+    case '-':
+        match('-');
+        return - expr();
     default:
-        error("Unkown Atom.");
-        return NONE;
+        if (numbertok) {
+            result = tok;
+            match(tok);
+            return result;
+        } else {
+            error("Unkown Atom.");
+            return NONE;
+        }
     }
 }
 
 void match(int t) {
     if (tok == t) {
-        tok = scanner();
-        if (tok < 256) {
-            char c = tok;
-            printf("{OP:  '%c'}\n", c);
-        } else if (tok == NONE) {
-            printf("{None}\n");
-        } else {
-            printf("{NUM: '%d'}\n", tokenval);
-        }
+        tok = scanner_next();
     } else {
         error("Parse Syntax error");
     }
@@ -118,7 +149,7 @@ void error(char *msg) {
 }
 
 // scannernext : Lexical analyzer, return the next token found.
-int scannernext() {
+int scanner_next() {
     int t = getchar();
     // Each expression can be just one line.
     while (t != '\n' && t != '\r') {
@@ -135,16 +166,13 @@ int scannernext() {
                 t = getchar();
             }
             ungetc(t, stdin);
-            return NUM;
-         } else if (t == '(' || t == ')' || t == ';' ||
-                    t == '+' || t == '-' || t == '*' || t == '/') {
-            /* single symbol 
-            could be error, handled later in the parser. */
+            numbertok = true;
+            return tokenval;
+         } else {
+            /* operator or could be error handled later in parser. */
+            numbertok = false;
             tokenval = NONE;
             return t;
-        } else {
-            error("Syntax error");
-            return NONE;
         }
         t = getchar(); // Always advance the scanner.
     } // endwhile
