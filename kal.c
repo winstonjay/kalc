@@ -12,8 +12,8 @@
 #define DONE  248
 
 typedef struct {
-    int tok;
-    int toktype;
+    int tok;    // currrent token.
+    int type;   // currrent token type.
 } Scanner;
 
 int tok; // will be more than single chars in future.
@@ -23,31 +23,33 @@ bool numbertok;
 
 int scanner_next();
 
-int parse();
-int expr();
-int term();
-int exponent();
-int factor();
-void match(int t);
+int calculate(), expr(), term(), exponent(), factor();
 
-void error();
+void match(int t), error();
 
-int history[2] = {-1, -1};
+int history[2] = {NONE};
 
 // Run basic REPL.
 int main() {
     while (true) {
-        printf(">>> ");
-        result = parse();
-        history[1] = history[0];
-        history[0] = result;
+        printf("(kalc)> ");
+        result = calculate();
         printf("%d\n", result);
     }
 }
 
-int parse() {
+int calculate() {
     tok = scanner_next();
-    result = expr();
+    while (tok != DONE) {
+        result = expr();
+        history[0] = result;
+        if (tok == ',') {
+            match(',');
+            printf("%d, ", result);
+        } else {
+            break;
+        }
+    }
     return result;
 }
 
@@ -174,7 +176,7 @@ int scanner_next() {
             tokenval = NONE;
             return t;
         }
-        t = getchar(); // Always advance the scanner.
-    } // endwhile
+        t = getchar(); /* Always advance the scanner. */
+    }
     return DONE;
 }
